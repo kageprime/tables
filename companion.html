@@ -1,0 +1,1506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Argon Tennis — Wii U 3D Pocket Racket Controller</title>
+  <style>
+    :root {
+      --bg-canvas: #0b1017;
+      --bg-pod: #141d2b;
+      --bg-pod-elevated: #1c283a;
+      --border-hairline: rgba(226, 240, 255, 0.14);
+      --border-active: #25a8f5;
+      --text-primary: #f4f8ff;
+      --text-muted: #8fa6c2;
+      --accent-cyan: #25a8f5;
+      --accent-gold: #ffea28;
+      --accent-lime: #dfff00;
+      --accent-p1: #ff5238;
+      --accent-p2: #3b82f6;
+      --accent-green: #22c55e;
+      --font-display: "Nunito", "Varela Round", "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-canvas);
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      touch-action: none;
+    }
+
+    .gamepad-shell {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100dvh;
+      max-width: 540px;
+      margin: 0 auto;
+      padding: env(safe-area-inset-top, 10px) 12px env(safe-area-inset-bottom, 12px);
+      gap: 8px;
+    }
+
+    /* Top Bar */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--bg-pod);
+      border: 1px solid var(--border-hairline);
+      border-radius: 16px;
+      min-height: 52px;
+    }
+
+    .role-switch-group {
+      display: flex;
+      align-items: center;
+      background: #0d131d;
+      padding: 3px;
+      border-radius: 10px;
+      border: 1px solid var(--border-hairline);
+    }
+
+    .role-btn {
+      min-height: 36px;
+      padding: 0 11px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font-display);
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease;
+    }
+
+    .role-btn.active-p1 {
+      background: var(--accent-p1);
+      color: #fff;
+    }
+
+    .role-btn.active-p2 {
+      background: var(--accent-p2);
+      color: #fff;
+    }
+
+    .score-ticker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 96px;
+    }
+
+    .score-main {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 19px;
+      font-weight: 900;
+      letter-spacing: 0.03em;
+      color: #fff;
+      line-height: 1.05;
+    }
+
+    .score-sub {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .btn-calibrate-top {
+      min-height: 40px;
+      padding: 0 13px;
+      border-radius: 11px;
+      border: 1.5px solid var(--accent-cyan);
+      background: linear-gradient(180deg, #1d354d, #112233);
+      color: #e2f3ff;
+      font-family: var(--font-display);
+      font-size: 12.5px;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 0.12s ease, border-color 0.15s ease;
+    }
+
+    .btn-calibrate-top:active {
+      transform: scale(0.95);
+    }
+
+    .btn-calibrate-top.calibrated {
+      border-color: var(--accent-green);
+      background: linear-gradient(180deg, #123824, #0c2618);
+      color: #bbf7d0;
+    }
+
+    /* Room & Sensor Bar */
+    .sub-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 4px;
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    .room-pill-btn {
+      background: var(--bg-pod);
+      border: 1px solid var(--border-hairline);
+      color: var(--text-primary);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .telemetry-readout {
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* Sensor Permission Callout */
+    .sensor-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, #1d3a5f, #152740);
+      border: 1.5px solid var(--accent-cyan);
+    }
+
+    .sensor-banner.hidden {
+      display: none !important;
+    }
+
+    .sensor-banner-text {
+      font-size: 12.5px;
+      font-weight: 700;
+      line-height: 1.3;
+      color: #e6f4ff;
+    }
+
+    .sensor-enable-btn {
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent-cyan);
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Center 3D Racket Arena & Swipe Pad */
+    .racket-viewport-card {
+      position: relative;
+      flex: 1 1 auto;
+      min-height: 165px;
+      background: radial-gradient(circle at 50% 45%, #17263b 0%, #0d1522 75%, #090e17 100%);
+      border: 1.5px solid var(--border-hairline);
+      border-radius: 20px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    #racket-3d-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .viewport-top-overlay {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      pointer-events: none;
+    }
+
+    .calib-instruction {
+      font-size: 12px;
+      font-weight: 800;
+      color: #cfe8ff;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    }
+
+    .drift-tag {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #93c5fd;
+    }
+
+    .feedback-banner {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 4;
+      padding: 8px 18px;
+      border-radius: 14px;
+      background: rgba(11, 16, 23, 0.92);
+      border: 2px solid var(--accent-gold);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.16s ease, transform 0.16s ease;
+    }
+
+    .feedback-banner.visible {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1.03);
+    }
+
+    .feedback-grade {
+      font-size: 17px;
+      font-weight: 900;
+      color: var(--accent-gold);
+      letter-spacing: 0.03em;
+    }
+
+    .feedback-detail {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    .viewport-bottom-overlay {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: linear-gradient(180deg, transparent, rgba(8, 12, 18, 0.85));
+      pointer-events: none;
+    }
+
+    .angle-metrics {
+      display: flex;
+      gap: 12px;
+      font-family: var(--font-mono);
+      font-variant-numeric: tabular-nums;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+
+    .swipe-hint {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    /* Desktop / No-Gyro Simulator Sliders (collapsible) */
+    .sim-tilt-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      background: var(--bg-pod);
+      border: 1px solid var(--border-hairline);
+      border-radius: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .sim-tilt-bar.hidden {
+      display: none !important;
+    }
+
+    .sim-tilt-bar label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+    }
+
+    .sim-tilt-bar input[type="range"] {
+      width: 100%;
+      accent-color: var(--accent-cyan);
+    }
+
+    /* Shot Type Selector Strip */
+    .shot-selector-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .shot-chip-btn {
+      min-height: 44px;
+      padding: 4px 4px;
+      border-radius: 12px;
+      border: 1.5px solid var(--border-hairline);
+      background: var(--bg-pod);
+      color: var(--text-muted);
+      font-family: var(--font-display);
+      font-size: 11.5px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .shot-chip-btn:active {
+      transform: scale(0.95);
+    }
+
+    .shot-chip-btn.active {
+      background: #1a3350;
+      border-color: var(--accent-cyan);
+      color: #fff;
+    }
+
+    .shot-chip-sub {
+      font-size: 9px;
+      font-weight: 700;
+      opacity: 0.72;
+    }
+
+    /* Bottom Thumb Zone: Left D-Pad + Right Action Trigger */
+    .thumb-deck {
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 10px;
+      min-height: 184px;
+    }
+
+    .dpad-pod, .action-pod {
+      background: var(--bg-pod);
+      border: 1px solid var(--border-hairline);
+      border-radius: 20px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .pod-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .footwork-mode-btn {
+      background: #0d131d;
+      border: 1px solid var(--border-hairline);
+      color: #bae6fd;
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .dpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 5px;
+      flex: 1;
+    }
+
+    .dpad-btn {
+      min-height: 44px;
+      border-radius: 11px;
+      border: 1.5px solid rgba(255, 255, 255, 0.15);
+      background: var(--bg-pod-elevated);
+      color: #fff;
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.05;
+      transition: transform 0.08s ease, background 0.12s ease, border-color 0.12s ease;
+    }
+
+    .dpad-btn.active {
+      background: var(--accent-cyan);
+      border-color: #fff;
+      transform: scale(0.95);
+    }
+
+    .dpad-center {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--text-muted);
+      background: #0e1520;
+      border-radius: 10px;
+    }
+
+    .b-trigger-btn {
+      flex: 1;
+      width: 100%;
+      border-radius: 16px;
+      border: 2.5px solid rgba(255, 255, 255, 0.85);
+      background: linear-gradient(180deg, #38bdf8 0%, #0284c7 55%, #0369a1 100%);
+      color: #fff;
+      font-family: var(--font-display);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35), inset 0 2px 1px rgba(255, 255, 255, 0.45);
+      transition: transform 0.08s ease, filter 0.12s ease;
+    }
+
+    .b-trigger-btn:active, .b-trigger-btn.held {
+      transform: scale(0.96);
+      filter: brightness(1.12);
+      border-color: var(--accent-gold);
+    }
+
+    .b-trigger-title {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
+    .b-trigger-sub {
+      font-size: 11px;
+      font-weight: 700;
+      color: #e0f2fe;
+    }
+
+    .quick-toss-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .quick-act-btn {
+      min-height: 42px;
+      border-radius: 10px;
+      border: 1px solid var(--border-hairline);
+      background: var(--bg-pod-elevated);
+      color: #f8fafc;
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .quick-act-btn:active {
+      transform: scale(0.96);
+      background: #283a52;
+    }
+  </style>
+</head>
+<body>
+  <main class="gamepad-shell">
+    <!-- Top Status, Role Switch & Calibrate Bar -->
+    <header class="top-bar">
+      <div class="role-switch-group" role="group" aria-label="Player Controller Role">
+        <button type="button" id="btn-role-p1" class="role-btn active-p1">P1 Red</button>
+        <button type="button" id="btn-role-p2" class="role-btn">P2 Blue</button>
+      </div>
+
+      <div class="score-ticker" aria-live="polite">
+        <div id="controller-score-main" class="score-main">00 - 00</div>
+        <div id="controller-score-sub" class="score-sub">Ready on Court</div>
+      </div>
+
+      <button type="button" id="btn-calibrate" class="btn-calibrate-top">Calibrate 3D</button>
+    </header>
+
+    <!-- Secondary Room & Telemetry Row -->
+    <div class="sub-status-row">
+      <button type="button" id="btn-room-code" class="room-pill-btn">ROOM: DEFAULT</button>
+      <span id="conn-latency-readout" class="telemetry-readout">Connecting...</span>
+    </div>
+
+    <!-- iOS / Mobile Motion Sensor Permission Banner -->
+    <section id="sensor-permission-banner" class="sensor-banner hidden">
+      <div class="sensor-banner-text">
+        Tap to unlock 60Hz 3D Gyroscope &amp; Motion Swing sensors on your phone.
+      </div>
+      <button type="button" id="btn-enable-sensors" class="sensor-enable-btn">Enable 3D Motion</button>
+    </section>
+
+    <!-- Center 3D Racket Orientation Preview & Touch Swipe Arena -->
+    <section class="racket-viewport-card" id="swipe-arena" aria-label="3D Racket Calibration Preview and Swipe Pad">
+      <canvas id="racket-3d-canvas" width="480" height="280"></canvas>
+
+      <div class="viewport-top-overlay">
+        <span id="calib-status-text" class="calib-instruction">Point phone at screen &amp; tap Calibrate 3D</span>
+        <span id="drift-guard-label" class="drift-tag">Auto-Drift Guard</span>
+      </div>
+
+      <div id="feedback-toast" class="feedback-banner">
+        <div id="feedback-grade-text" class="feedback-grade">PERFECT!</div>
+        <div id="feedback-detail-text" class="feedback-detail">POWER TOPSPIN • 182 KM/H</div>
+      </div>
+
+      <div class="viewport-bottom-overlay">
+        <div class="angle-metrics">
+          <span id="metric-pitch">P: 0°</span>
+          <span id="metric-roll">R: 0°</span>
+          <span id="metric-yaw">Y: 0°</span>
+        </div>
+        <span class="swipe-hint">Swing Phone or Swipe Pad</span>
+      </div>
+    </section>
+
+    <!-- Desktop / No-Sensor 3D Tilt Simulator Bar (shown automatically if hardware gyro is inactive) -->
+    <div id="sim-tilt-bar" class="sim-tilt-bar hidden">
+      <label>Pitch <input type="range" id="sim-pitch" min="-55" max="55" value="0" /></label>
+      <label>Roll <input type="range" id="sim-roll" min="-65" max="65" value="0" /></label>
+      <label>Yaw <input type="range" id="sim-yaw" min="-55" max="55" value="0" /></label>
+    </div>
+
+    <!-- Tactile Shot Type Lock Strip -->
+    <section class="shot-selector-strip" aria-label="Shot Type Selection">
+      <button type="button" class="shot-chip-btn active" data-shot="auto">
+        <span>Auto 3D</span>
+        <span class="shot-chip-sub">3D Angle</span>
+      </button>
+      <button type="button" class="shot-chip-btn" data-shot="topspin">
+        <span>Topspin</span>
+        <span class="shot-chip-sub">Drive</span>
+      </button>
+      <button type="button" class="shot-chip-btn" data-shot="slice">
+        <span>Slice</span>
+        <span class="shot-chip-sub">Backspin</span>
+      </button>
+      <button type="button" class="shot-chip-btn" data-shot="lob">
+        <span>Lob</span>
+        <span class="shot-chip-sub">High Arc</span>
+      </button>
+      <button type="button" class="shot-chip-btn" data-shot="smash">
+        <span>Smash</span>
+        <span class="shot-chip-sub">Power</span>
+      </button>
+    </section>
+
+    <!-- Bottom Thumb Zone: Left Court D-Pad + Right Wii U B-Trigger -->
+    <section class="thumb-deck">
+      <div class="dpad-pod">
+        <div class="pod-header">
+          <span>Footwork</span>
+          <button type="button" id="btn-footwork-mode" class="footwork-mode-btn">Auto + Net Rush</button>
+        </div>
+        <div class="dpad-grid">
+          <div></div>
+          <button type="button" class="dpad-btn" data-dir="up" aria-label="Rush Net">
+            <span>▲</span>
+            <span>NET</span>
+          </button>
+          <div></div>
+          <button type="button" class="dpad-btn" data-dir="left" aria-label="Move Left">◀ L</button>
+          <div id="dpad-center-label" class="dpad-center">AUTO</div>
+          <button type="button" class="dpad-btn" data-dir="right" aria-label="Move Right">R ▶</button>
+          <div></div>
+          <button type="button" class="dpad-btn" data-dir="down" aria-label="Drop to Baseline">
+            <span>BASE</span>
+            <span>▼</span>
+          </button>
+          <div></div>
+        </div>
+      </div>
+
+      <div class="action-pod">
+        <div class="pod-header">
+          <span>Racket Trigger</span>
+          <span id="swing-speed-label">READY</span>
+        </div>
+        <button type="button" id="btn-b-trigger" class="b-trigger-btn">
+          <span class="b-trigger-title">B-TRIGGER</span>
+          <span class="b-trigger-sub">Hold Stance • Tap Swing</span>
+        </button>
+        <div class="quick-toss-row">
+          <button type="button" id="btn-quick-toss" class="quick-act-btn">Serve Toss ↑</button>
+          <button type="button" id="btn-quick-smash" class="quick-act-btn">Power Hit ⚡</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    // --- Quaternion Math Utilities for Gimbal-Lock-Free 3D Calibration ---
+    const DEG2RAD = Math.PI / 180;
+    const RAD2DEG = 180 / Math.PI;
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    // Build unit quaternion from DeviceOrientation (alpha: Z, beta: X, gamma: Y)
+    function quatFromDeviceEuler(alphaDeg, betaDeg, gammaDeg) {
+      const z = (alphaDeg || 0) * DEG2RAD * 0.5;
+      const x = (betaDeg || 0) * DEG2RAD * 0.5;
+      const y = (gammaDeg || 0) * DEG2RAD * 0.5;
+
+      const cX = Math.cos(x), sX = Math.sin(x);
+      const cY = Math.cos(y), sY = Math.sin(y);
+      const cZ = Math.cos(z), sZ = Math.sin(z);
+
+      // Intrinsic ZXY rotation order standard for W3C DeviceOrientation
+      return {
+        w: cX * cY * cZ - sX * sY * sZ,
+        x: sX * cY * cZ - cX * sY * sZ,
+        y: cX * sY * cZ + sX * cY * sZ,
+        z: cX * cY * sZ + sX * sY * cZ,
+      };
+    }
+
+    function quatConjugate(q) {
+      return { w: q.w, x: -q.x, y: -q.y, z: -q.z };
+    }
+
+    function quatMultiply(a, b) {
+      return {
+        w: a.w * b.w - a.x * b.x - a.y * b.y - a.z * b.z,
+        x: a.w * b.x + a.x * b.w + a.y * b.z - a.z * b.y,
+        y: a.w * b.y - a.x * b.z + a.y * b.w + a.z * b.x,
+        z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
+      };
+    }
+
+    function quatSlerp(a, b, t) {
+      let cosHalfTheta = a.w * b.w + a.x * b.x + a.y * b.y + a.z * b.z;
+      let bx = b.x, by = b.y, bz = b.z, bw = b.w;
+      if (cosHalfTheta < 0) {
+        bw = -bw; bx = -bx; by = -by; bz = -bz;
+        cosHalfTheta = -cosHalfTheta;
+      }
+      if (cosHalfTheta >= 0.9995) {
+        const w = a.w + t * (bw - a.w);
+        const x = a.x + t * (bx - a.x);
+        const y = a.y + t * (by - a.y);
+        const z = a.z + t * (bz - a.z);
+        const len = Math.hypot(w, x, y, z) || 1;
+        return { w: w / len, x: x / len, y: y / len, z: z / len };
+      }
+      const halfTheta = Math.acos(cosHalfTheta);
+      const sinHalfTheta = Math.sqrt(1 - cosHalfTheta * cosHalfTheta);
+      const ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta;
+      const ratioB = Math.sin(t * halfTheta) / sinHalfTheta;
+      return {
+        w: a.w * ratioA + bw * ratioB,
+        x: a.x * ratioA + bx * ratioB,
+        y: a.y * ratioA + by * ratioB,
+        z: a.z * ratioA + bz * ratioB,
+      };
+    }
+
+    // Extract calibrated Pitch (X), Roll (Y), Yaw (Z) in degrees from relative quaternion
+    function eulerFromRelativeQuat(q) {
+      // Roll (pronation/supination around forward axis Y)
+      const sinr_cosp = 2 * (q.w * q.y - q.z * q.x);
+      const cosr_cosp = 1 - 2 * (q.y * q.y + q.x * q.x);
+      const roll = Math.atan2(sinr_cosp, cosr_cosp) * RAD2DEG;
+
+      // Pitch (tilt up/down around X axis)
+      const sinp = clamp(2 * (q.w * q.x + q.y * q.z), -1, 1);
+      const pitch = Math.asin(sinp) * RAD2DEG;
+
+      // Yaw (aim left/right around Z axis)
+      const siny_cosp = 2 * (q.w * q.z - q.x * q.y);
+      const cosy_cosp = 1 - 2 * (q.x * q.x + q.z * q.z);
+      const yaw = -Math.atan2(siny_cosp, cosy_cosp) * RAD2DEG;
+
+      return {
+        pitch: clamp(pitch, -75, 75),
+        roll: clamp(roll, -85, 85),
+        yaw: clamp(yaw, -75, 75),
+      };
+    }
+
+    // --- Controller State ---
+    const params = new URLSearchParams(window.location.search);
+    let roomId = (params.get("room") || "default").trim().toUpperCase();
+    if (roomId === "DEFAULT") roomId = "default";
+    let role = (params.get("role") || "p1").toLowerCase() === "p2" ? "p2" : "p1";
+
+    const state = {
+      connected: false,
+      sensorsActive: false,
+      calibrated: false,
+      rawOrientation: { alpha: 0, beta: 25, gamma: 0 },
+      refQuat: quatFromDeviceEuler(0, 25, 0),
+      calibratedPose: { pitch: 0, roll: 0, yaw: 0 },
+      accelMag: 0,
+      gyroRate: { alpha: 0, beta: 0, gamma: 0 },
+      steadyFrames: 0,
+      buttonB: false,
+      selectedShotType: "auto",
+      dpad: { x: 0, y: 0, netRush: false, manualMode: false },
+      lastSwingAt: 0,
+      lastFeedbackSeq: 0,
+      lastRecenterRequestSeq: 0,
+      latencyMs: 0,
+      matchPhase: "SERVE_STANCE",
+      isMyServe: true,
+    };
+
+    // DOM Elements
+    const btnRoleP1 = document.getElementById("btn-role-p1");
+    const btnRoleP2 = document.getElementById("btn-role-p2");
+    const btnCalibrate = document.getElementById("btn-calibrate");
+    const btnRoomCode = document.getElementById("btn-room-code");
+    const connReadout = document.getElementById("conn-latency-readout");
+    const scoreMainEl = document.getElementById("controller-score-main");
+    const scoreSubEl = document.getElementById("controller-score-sub");
+    const sensorBanner = document.getElementById("sensor-permission-banner");
+    const btnEnableSensors = document.getElementById("btn-enable-sensors");
+    const calibStatusText = document.getElementById("calib-status-text");
+    const metricPitch = document.getElementById("metric-pitch");
+    const metricRoll = document.getElementById("metric-roll");
+    const metricYaw = document.getElementById("metric-yaw");
+    const feedbackToast = document.getElementById("feedback-toast");
+    const feedbackGradeText = document.getElementById("feedback-grade-text");
+    const feedbackDetailText = document.getElementById("feedback-detail-text");
+    const simTiltBar = document.getElementById("sim-tilt-bar");
+    const simPitch = document.getElementById("sim-pitch");
+    const simRoll = document.getElementById("sim-roll");
+    const simYaw = document.getElementById("sim-yaw");
+    const btnFootworkMode = document.getElementById("btn-footwork-mode");
+    const dpadCenterLabel = document.getElementById("dpad-center-label");
+    const btnBTrigger = document.getElementById("btn-b-trigger");
+    const btnQuickToss = document.getElementById("btn-quick-toss");
+    const btnQuickSmash = document.getElementById("btn-quick-smash");
+    const swingSpeedLabel = document.getElementById("swing-speed-label");
+    const canvas = document.getElementById("racket-3d-canvas");
+    const ctx = canvas.getContext("2d");
+
+    function updateRoleUI() {
+      btnRoleP1.className = `role-btn ${role === "p1" ? "active-p1" : ""}`;
+      btnRoleP2.className = `role-btn ${role === "p2" ? "active-p2" : ""}`;
+      btnRoomCode.textContent = `ROOM: ${roomId.toUpperCase()}`;
+      const nextUrl = new URL(window.location.href);
+      nextUrl.searchParams.set("room", roomId);
+      nextUrl.searchParams.set("role", role);
+      window.history.replaceState({}, "", nextUrl.toString());
+    }
+    updateRoleUI();
+
+    btnRoleP1.addEventListener("click", () => {
+      role = "p1";
+      updateRoleUI();
+      sendTelemetry();
+    });
+
+    btnRoleP2.addEventListener("click", () => {
+      role = "p2";
+      updateRoleUI();
+      sendTelemetry();
+    });
+
+    btnRoomCode.addEventListener("click", () => {
+      const next = window.prompt("Enter Room Code (or 'default' for local play):", roomId);
+      if (next && next.trim()) {
+        roomId = next.trim().toUpperCase();
+        if (roomId === "DEFAULT") roomId = "default";
+        updateRoleUI();
+        sendTelemetry();
+      }
+    });
+
+    // --- 3D Calibration Handler ---
+    function calibrate3DNeutral(fromRemote = false) {
+      state.refQuat = quatFromDeviceEuler(
+        state.rawOrientation.alpha,
+        state.rawOrientation.beta,
+        state.rawOrientation.gamma
+      );
+      state.calibrated = true;
+      state.calibratedPose = { pitch: 0, roll: 0, yaw: 0 };
+      if (simPitch && simRoll && simYaw) {
+        simPitch.value = "0";
+        simRoll.value = "0";
+        simYaw.value = "0";
+      }
+      btnCalibrate.classList.add("calibrated");
+      btnCalibrate.textContent = "3D Zeroed ✓";
+      calibStatusText.textContent = "3D Racket Calibrated • Point at Screen = Center";
+      if (navigator.vibrate) {
+        try { navigator.vibrate([30, 40, 50]); } catch {}
+      }
+      showFeedbackBanner("3D CALIBRATED ✓", "NEUTRAL AXIS ZEROED TO SCREEN", 1100);
+      if (!fromRemote) {
+        fetch("/api/racket/calibrate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ room: roomId, role, calibrated: true }),
+        }).catch(() => {});
+      }
+    }
+
+    btnCalibrate.addEventListener("click", () => calibrate3DNeutral(false));
+
+    // --- iOS / Android Sensor Setup ---
+    const needsExplicitPermission =
+      (typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function") ||
+      (typeof DeviceMotionEvent !== "undefined" &&
+        typeof DeviceMotionEvent.requestPermission === "function");
+
+    if (needsExplicitPermission) {
+      sensorBanner.classList.remove("hidden");
+    } else {
+      attachSensorListeners();
+      // Show simulator sliders if no hardware orientation arrives within 1.2s
+      setTimeout(() => {
+        if (!state.sensorsActive) {
+          simTiltBar.classList.remove("hidden");
+          calibStatusText.textContent = "Touch Swipe Pad or Use 3D Tilt Sliders";
+        }
+      }, 1200);
+    }
+
+    btnEnableSensors.addEventListener("click", async () => {
+      try {
+        if (
+          typeof DeviceOrientationEvent !== "undefined" &&
+          typeof DeviceOrientationEvent.requestPermission === "function"
+        ) {
+          await DeviceOrientationEvent.requestPermission();
+        }
+        if (
+          typeof DeviceMotionEvent !== "undefined" &&
+          typeof DeviceMotionEvent.requestPermission === "function"
+        ) {
+          await DeviceMotionEvent.requestPermission();
+        }
+      } catch (err) {
+        console.warn("Sensor permission prompt warning:", err);
+      }
+      sensorBanner.classList.add("hidden");
+      attachSensorListeners();
+      setTimeout(() => calibrate3DNeutral(false), 180);
+    });
+
+    function attachSensorListeners() {
+      window.addEventListener("deviceorientation", (e) => {
+        if (e.alpha === null && e.beta === null && e.gamma === null) return;
+        if (!state.sensorsActive) {
+          state.sensorsActive = true;
+          simTiltBar.classList.add("hidden");
+          // Auto-zero on first sensor reading so it immediately feels natural
+          state.rawOrientation.alpha = Number(e.alpha || 0);
+          state.rawOrientation.beta = Number(e.beta || 0);
+          state.rawOrientation.gamma = Number(e.gamma || 0);
+          calibrate3DNeutral(false);
+        } else {
+          state.rawOrientation.alpha = Number(e.alpha || 0);
+          state.rawOrientation.beta = Number(e.beta || 0);
+          state.rawOrientation.gamma = Number(e.gamma || 0);
+        }
+
+        const currentQuat = quatFromDeviceEuler(
+          state.rawOrientation.alpha,
+          state.rawOrientation.beta,
+          state.rawOrientation.gamma
+        );
+
+        // Auto-drift guard: when phone is steady near rest, gently slerp reference yaw
+        if (state.steadyFrames > 28 && !state.buttonB) {
+          state.refQuat = quatSlerp(state.refQuat, currentQuat, 0.008);
+        }
+
+        const relQuat = quatMultiply(quatConjugate(state.refQuat), currentQuat);
+        state.calibratedPose = eulerFromRelativeQuat(relQuat);
+      });
+
+      window.addEventListener("devicemotion", (e) => {
+        const acc = e.acceleration || e.accelerationIncludingGravity;
+        if (!acc) return;
+        const ax = Number(acc.x || 0);
+        const ay = Number(acc.y || 0);
+        const az = Number(acc.z || 0);
+        const usesGravity = !e.acceleration && Boolean(e.accelerationIncludingGravity);
+        const rawMag = Math.hypot(ax, ay, az);
+        const linMag = usesGravity ? Math.abs(rawMag - 9.81) : rawMag;
+
+        state.accelMag = clamp(linMag / 7.5, 0, 4.5);
+
+        const rot = e.rotationRate || {};
+        const rAlpha = Number(rot.alpha || 0);
+        const rBeta = Number(rot.beta || 0);
+        const rGamma = Number(rot.gamma || 0);
+        state.gyroRate = { alpha: rAlpha, beta: rBeta, gamma: rGamma };
+        const rotMag = Math.hypot(rAlpha, rBeta, rGamma);
+
+        if (linMag < 1.35 && rotMag < 25) {
+          state.steadyFrames += 1;
+        } else {
+          state.steadyFrames = 0;
+        }
+
+        // High-Frequency 3D Swing & Toss Detection
+        const now = performance.now();
+        if (now - state.lastSwingAt < 275) return;
+
+        // Detect Upward Serve Toss in SERVE_STANCE
+        if (
+          state.matchPhase === "SERVE_STANCE" &&
+          state.isMyServe &&
+          (ay > 9.5 || rAlpha > 135 || (linMag > 10.5 && state.calibratedPose.pitch > 18))
+        ) {
+          state.lastSwingAt = now;
+          dispatchSwingEvent({
+            type: "toss",
+            shotType: "lob",
+            speed: 1.12,
+            dirX: clamp(state.calibratedPose.yaw / 45, -0.8, 0.8),
+            dirY: -0.92,
+          });
+          return;
+        }
+
+        // Detect 3D Racket Swing
+        if (linMag > 11.5 || rotMag > 210) {
+          state.lastSwingAt = now;
+          const speedMult = clamp(0.85 + (linMag / 22) * 0.65 + (rotMag / 480) * 0.35, 0.85, 1.75);
+          // Determine forehand vs backhand from horizontal swing / roll bevel
+          const horizRate = rGamma + rBeta * 0.45;
+          const side =
+            state.calibratedPose.pitch > 32 && speedMult > 1.22
+              ? "overhead"
+              : horizRate > 35 || state.calibratedPose.roll > 14
+              ? "backhand"
+              : "forehand";
+
+          const dirX = clamp(
+            state.calibratedPose.yaw / 38 + clamp(horizRate / 280, -0.45, 0.45),
+            -1,
+            1
+          );
+          const dirY = clamp(-state.calibratedPose.pitch / 45, -1, 1);
+
+          const resolvedShot = resolveShotTypeFrom3D(
+            state.selectedShotType,
+            state.calibratedPose.pitch,
+            state.calibratedPose.roll,
+            speedMult
+          );
+
+          dispatchSwingEvent({
+            type: "swing",
+            side,
+            shotType: resolvedShot,
+            speed: speedMult,
+            dirX,
+            dirY,
+          });
+        }
+      });
+    }
+
+    // Simulator Sliders for Desktop Testing
+    [simPitch, simRoll, simYaw].forEach((el) => {
+      if (!el) return;
+      el.addEventListener("input", () => {
+        state.calibratedPose = {
+          pitch: Number(simPitch.value || 0),
+          roll: Number(simRoll.value || 0),
+          yaw: Number(simYaw.value || 0),
+        };
+        state.calibrated = true;
+      });
+    });
+
+    function resolveShotTypeFrom3D(selected, pitch, roll, speed) {
+      if (selected && selected !== "auto") return selected;
+      if (pitch < -20 && speed >= 1.22) return "smash";
+      if (Math.abs(roll) > 24 && pitch > -10) return "slice";
+      if (pitch > 24) return "lob";
+      if (speed >= 1.48) return "flat";
+      return "topspin";
+    }
+
+    // --- Shot Type Selector Buttons ---
+    document.querySelectorAll(".shot-chip-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".shot-chip-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.selectedShotType = btn.dataset.shot || "auto";
+        if (navigator.vibrate) {
+          try { navigator.vibrate(14); } catch {}
+        }
+        sendTelemetry();
+      });
+    });
+
+    // --- D-Pad Footwork Controls ---
+    btnFootworkMode.addEventListener("click", () => {
+      state.dpad.manualMode = !state.dpad.manualMode;
+      btnFootworkMode.textContent = state.dpad.manualMode ? "Manual Move" : "Auto + Net Rush";
+      dpadCenterLabel.textContent = state.dpad.manualMode ? "MANUAL" : "AUTO";
+      sendTelemetry();
+    });
+
+    const activeDirs = new Set();
+    function recomputeDpadVector() {
+      let x = 0, y = 0;
+      if (activeDirs.has("left")) x -= 1;
+      if (activeDirs.has("right")) x += 1;
+      if (activeDirs.has("up")) y -= 1;
+      if (activeDirs.has("down")) y += 1;
+      state.dpad.x = x;
+      state.dpad.y = y;
+      state.dpad.netRush = activeDirs.has("up");
+      sendTelemetry();
+    }
+
+    document.querySelectorAll(".dpad-btn").forEach((btn) => {
+      const dir = btn.dataset.dir;
+      const onDown = (e) => {
+        e.preventDefault();
+        activeDirs.add(dir);
+        btn.classList.add("active");
+        if (navigator.vibrate) {
+          try { navigator.vibrate(10); } catch {}
+        }
+        recomputeDpadVector();
+      };
+      const onUp = (e) => {
+        e.preventDefault();
+        activeDirs.delete(dir);
+        btn.classList.remove("active");
+        recomputeDpadVector();
+      };
+      btn.addEventListener("pointerdown", onDown);
+      btn.addEventListener("pointerup", onUp);
+      btn.addEventListener("pointercancel", onUp);
+      btn.addEventListener("pointerleave", onUp);
+    });
+
+    // --- B-Trigger & Quick Action Buttons ---
+    let bPressTime = 0;
+    btnBTrigger.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      state.buttonB = true;
+      bPressTime = performance.now();
+      btnBTrigger.classList.add("held");
+      if (navigator.vibrate) {
+        try { navigator.vibrate(15); } catch {}
+      }
+      sendTelemetry();
+    });
+
+    const releaseBTrigger = (e) => {
+      if (!state.buttonB) return;
+      e.preventDefault();
+      state.buttonB = false;
+      btnBTrigger.classList.remove("held");
+      const heldMs = performance.now() - bPressTime;
+      if (heldMs < 360) {
+        // Quick tap on B-Trigger: Toss if in SERVE_STANCE, otherwise execute calibrated swing
+        if (state.matchPhase === "SERVE_STANCE" && state.isMyServe) {
+          dispatchSwingEvent({
+            type: "toss",
+            shotType: "lob",
+            speed: 1.12,
+            dirX: clamp(state.calibratedPose.yaw / 42, -0.85, 0.85),
+            dirY: -0.9,
+          });
+        } else {
+          const shot = resolveShotTypeFrom3D(
+            state.selectedShotType,
+            state.calibratedPose.pitch,
+            state.calibratedPose.roll,
+            1.25
+          );
+          const side = state.calibratedPose.roll > 10 || state.calibratedPose.yaw > 8 ? "backhand" : "forehand";
+          dispatchSwingEvent({
+            type: "swing",
+            side,
+            shotType: shot,
+            speed: 1.25,
+            dirX: clamp(state.calibratedPose.yaw / 38, -1, 1),
+            dirY: clamp(-state.calibratedPose.pitch / 45, -1, 1),
+          });
+        }
+      }
+      sendTelemetry();
+    };
+    btnBTrigger.addEventListener("pointerup", releaseBTrigger);
+    btnBTrigger.addEventListener("pointercancel", releaseBTrigger);
+
+    btnQuickToss.addEventListener("click", () => {
+      dispatchSwingEvent({
+        type: "toss",
+        shotType: "lob",
+        speed: 1.12,
+        dirX: clamp(state.calibratedPose.yaw / 45, -0.8, 0.8),
+        dirY: -0.92,
+      });
+    });
+
+    btnQuickSmash.addEventListener("click", () => {
+      dispatchSwingEvent({
+        type: "swing",
+        side: "overhead",
+        shotType: "smash",
+        speed: 1.52,
+        dirX: clamp(state.calibratedPose.yaw / 36, -1, 1),
+        dirY: 0.55,
+      });
+    });
+
+    // --- Touch Swipe Arena on 3D Viewport ---
+    const swipeArena = document.getElementById("swipe-arena");
+    let dragStart = null;
+    let lastSwipeTrail = null;
+
+    swipeArena.addEventListener("pointerdown", (e) => {
+      dragStart = { x: e.clientX, y: e.clientY, t: performance.now() };
+    });
+
+    swipeArena.addEventListener("pointerup", (e) => {
+      if (!dragStart) return;
+      const dx = e.clientX - dragStart.x;
+      const dy = e.clientY - dragStart.y;
+      const dt = Math.max(18, performance.now() - dragStart.t);
+      const dist = Math.hypot(dx, dy);
+      dragStart = null;
+      if (dist < 20) return;
+
+      const vel = dist / dt;
+      const speedMult = clamp(0.85 + vel * 0.48, 0.88, 1.72);
+      const dirX = clamp(dx / 150 + state.calibratedPose.yaw / 50, -1, 1);
+      const dirY = clamp(dy / 130, -1, 1);
+      lastSwipeTrail = { dx, dy, t: performance.now() };
+
+      if (dy < -50 && Math.abs(dy) > Math.abs(dx) * 1.25 && state.matchPhase === "SERVE_STANCE") {
+        dispatchSwingEvent({
+          type: "toss",
+          shotType: "lob",
+          speed: speedMult,
+          dirX,
+          dirY: -0.92,
+        });
+      } else {
+        const side = dx > 16 ? "backhand" : dx < -16 ? "forehand" : state.calibratedPose.roll > 12 ? "backhand" : "forehand";
+        const shot = resolveShotTypeFrom3D(
+          state.selectedShotType,
+          state.calibratedPose.pitch - dy * 0.18,
+          state.calibratedPose.roll,
+          speedMult
+        );
+        dispatchSwingEvent({
+          type: "swing",
+          side,
+          shotType: shot,
+          speed: speedMult,
+          dirX,
+          dirY,
+        });
+      }
+    });
+
+    // --- Network Dispatch & Telemetry Loop ---
+    let feedbackTimer = null;
+    function showFeedbackBanner(grade, detail, duration = 1200) {
+      feedbackGradeText.textContent = grade;
+      feedbackDetailText.textContent = detail;
+      feedbackToast.classList.add("visible");
+      if (feedbackTimer) clearTimeout(feedbackTimer);
+      feedbackTimer = setTimeout(() => {
+        feedbackToast.classList.remove("visible");
+      }, duration);
+    }
+
+    async function dispatchSwingEvent(evt) {
+      const kmh = Math.round(115 + (evt.speed - 0.8) * 95);
+      swingSpeedLabel.textContent = evt.type === "toss" ? "TOSS ↑" : `${kmh} KM/H`;
+      if (navigator.vibrate) {
+        try { navigator.vibrate(evt.type === "toss" ? 18 : [28, 20, 35]); } catch {}
+      }
+      try {
+        await fetch(`/api/racket/swing?room=${encodeURIComponent(roomId)}&role=${role}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room: roomId,
+            role,
+            type: evt.type || "swing",
+            side: evt.side || null,
+            shotType: evt.shotType || "topspin",
+            speed: evt.speed || 1.2,
+            dirX: evt.dirX || 0,
+            angleX: evt.dirX || 0,
+            dirY: evt.dirY || -0.45,
+            pitch: state.calibratedPose.pitch,
+            roll: state.calibratedPose.roll,
+            yaw: state.calibratedPose.yaw,
+            calibrated: state.calibrated,
+            source: "phone",
+            timestamp: Date.now(),
+          }),
+        });
+      } catch {}
+    }
+
+    let telemetryBusy = false;
+    async function sendTelemetry() {
+      if (telemetryBusy) return;
+      telemetryBusy = true;
+      const t0 = performance.now();
+      try {
+        const res = await fetch(`/api/racket/telemetry?room=${encodeURIComponent(roomId)}&role=${role}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            room: roomId,
+            role,
+            connected: true,
+            calibrated: state.calibrated,
+            selectedShotType: state.selectedShotType,
+            pitch: Number(state.calibratedPose.pitch.toFixed(1)),
+            roll: Number(state.calibratedPose.roll.toFixed(1)),
+            yaw: Number(state.calibratedPose.yaw.toFixed(1)),
+            accelMag: Number(state.accelMag.toFixed(2)),
+            buttonB: state.buttonB,
+            dpad: state.dpad,
+          }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          state.connected = true;
+          state.latencyMs = Math.round(performance.now() - t0);
+          connReadout.textContent = `${role.toUpperCase()} Connected • ${state.latencyMs}ms`;
+
+          // Check if desktop requested a remote 3D recenter
+          if (
+            typeof data.recenterRequestSeq === "number" &&
+            data.recenterRequestSeq > state.lastRecenterRequestSeq
+          ) {
+            state.lastRecenterRequestSeq = data.recenterRequestSeq;
+            calibrate3DNeutral(true);
+          }
+
+          // Check for new ball-impact haptic feedback
+          if (data.lastFeedback && data.lastFeedback.seq > state.lastFeedbackSeq) {
+            state.lastFeedbackSeq = data.lastFeedback.seq;
+            const fb = data.lastFeedback;
+            if (Date.now() - Number(fb.serverTimeMs || 0) < 2500) {
+              showFeedbackBanner(
+                fb.grade || "PERFECT!",
+                `${fb.shotType || "TOPSPIN"} • ${fb.speedKmh || 168} KM/H`,
+                1350
+              );
+              if (navigator.vibrate) {
+                try {
+                  fb.kind === "whiff" || fb.kind === "fault"
+                    ? navigator.vibrate([20, 40, 20])
+                    : navigator.vibrate([45, 25, 65]);
+                } catch {}
+              }
+            }
+          }
+
+          // Update live match scoreboard on controller
+          if (data.matchSnapshot) {
+            const snap = data.matchSnapshot;
+            state.matchPhase = snap.phase || "RALLY";
+            if (snap.score) {
+              const pts = ["00", "15", "30", "40"];
+              const p1Pts = snap.score.playerPoints || 0;
+              const p2Pts = snap.score.opponentPoints || 0;
+              let scoreStr = `${pts[Math.min(3, p1Pts)]} - ${pts[Math.min(3, p2Pts)]}`;
+              if (p1Pts >= 3 && p2Pts >= 3) {
+                scoreStr = p1Pts === p2Pts ? "DEUCE" : p1Pts > p2Pts ? "AD - 40" : "40 - AD";
+              }
+              scoreMainEl.textContent = scoreStr;
+              const myServerRole = snap.score.server === "opponent" ? "p2" : "p1";
+              state.isMyServe = myServerRole === role;
+              scoreSubEl.textContent = `Games ${snap.score.playerGames || 0}-${snap.score.opponentGames || 0} • ${
+                state.isMyServe ? "YOUR SERVE" : "RECEIVING"
+              }`;
+            }
+          }
+        }
+      } catch {
+        connReadout.textContent = "Reconnecting...";
+      } finally {
+        telemetryBusy = false;
+      }
+    }
+
+    setInterval(sendTelemetry, 55);
+    sendTelemetry();
+
+    // --- Live 60FPS 3D Racket Canvas Renderer ---
+    function render3DRacketPreview() {
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const cx = w * 0.5;
+      const cy = h * 0.52;
+      const { pitch, roll, yaw } = state.calibratedPose;
+
+      metricPitch.textContent = `P: ${Math.round(pitch)}°`;
+      metricRoll.textContent = `R: ${Math.round(roll)}°`;
+      metricYaw.textContent = `Y: ${Math.round(yaw)}°`;
+
+      // Draw 3D Court Aim Horizon Grid
+      ctx.save();
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.16)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 88, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Aim target crosshair shifted by calibrated yaw/pitch
+      const aimX = cx + clamp(yaw * 1.8, -110, 110);
+      const aimY = cy - clamp(pitch * 1.4, -75, 75);
+      ctx.strokeStyle = state.calibrated ? "rgba(223, 255, 0, 0.75)" : "rgba(56, 189, 248, 0.55)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(aimX, aimY, 10, 0, Math.PI * 2);
+      ctx.moveTo(aimX - 16, aimY);
+      ctx.lineTo(aimX + 16, aimY);
+      ctx.moveTo(aimX, aimY - 16);
+      ctx.lineTo(aimX, aimY + 16);
+      ctx.stroke();
+      ctx.restore();
+
+      // Draw 3D Perspective Tennis Racket
+      ctx.save();
+      ctx.translate(cx + yaw * 0.85, cy - pitch * 0.55);
+      ctx.rotate((roll * Math.PI) / 180);
+
+      // Perspective foreshortening from pitch & yaw
+      const scaleX = clamp(Math.cos((roll * Math.PI) / 180 * 0.45), 0.38, 1);
+      const scaleY = clamp(Math.cos((pitch * Math.PI) / 180 * 0.55), 0.45, 1);
+      ctx.scale(scaleX, scaleY);
+
+      const isP1 = role === "p1";
+      const rimColor = isP1 ? "#ff5238" : "#3b82f6";
+
+      // String Bed Grid
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(0, -24, 42, 54, 0, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.strokeStyle = "rgba(240, 249, 255, 0.34)";
+      ctx.lineWidth = 1;
+      for (let gx = -36; gx <= 36; gx += 9) {
+        ctx.beginPath();
+        ctx.moveTo(gx, -80);
+        ctx.lineTo(gx, 32);
+        ctx.stroke();
+      }
+      for (let gy = -72; gy <= 24; gy += 9) {
+        ctx.beginPath();
+        ctx.moveTo(-44, gy);
+        ctx.lineTo(44, gy);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Outer 3D Rim
+      ctx.strokeStyle = state.buttonB ? "#ffea28" : rimColor;
+      ctx.lineWidth = 6.5;
+      ctx.beginPath();
+      ctx.ellipse(0, -24, 42, 54, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Inner Rim Highlight
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, -24, 38, 50, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Throat Y-Yoke
+      ctx.strokeStyle = "#cbd5e1";
+      ctx.lineWidth = 4.5;
+      ctx.beginPath();
+      ctx.moveTo(-16, 24);
+      ctx.lineTo(-4, 52);
+      ctx.moveTo(16, 24);
+      ctx.lineTo(4, 52);
+      ctx.stroke();
+
+      // Grip Handle
+      ctx.fillStyle = "#f8fafc";
+      ctx.strokeStyle = "#1e293b";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(-6, 50, 12, 38, 4);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Draw recent swipe vector if active
+      if (lastSwipeTrail && performance.now() - lastSwipeTrail.t < 450) {
+        const alpha = 1 - (performance.now() - lastSwipeTrail.t) / 450;
+        ctx.save();
+        ctx.strokeStyle = `rgba(223, 255, 0, ${alpha.toFixed(2)})`;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(cx + lastSwipeTrail.dx * 0.45, cy + lastSwipeTrail.dy * 0.45);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      requestAnimationFrame(render3DRacketPreview);
+    }
+    requestAnimationFrame(render3DRacketPreview);
+  </script>
+</body>
+</html>

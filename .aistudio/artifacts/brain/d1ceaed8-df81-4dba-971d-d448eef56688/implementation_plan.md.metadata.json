@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan for the Wii U GamePad-style phone controller, 3D gyroscope/accelerometer quaternion calibration with auto-drift correction and live 3D preview, dynamic QR pairing, and 1v1 Player vs CPU, Same-Screen 2-Phone Couch PvP, and Remote Room PvP modes.",
+  "updatedAt":  "2026-10-28T13:35:39.913261377Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
