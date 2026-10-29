@@ -771,6 +771,8 @@
     let role = (params.get("role") || "p1").toLowerCase() === "p2" ? "p2" : "p1";
 
     const state = {
+      sport: (params.get("sport") || "tennis").toLowerCase() === "table_tennis" ? "table_tennis" : "tennis",
+      pointsToWin: 11,
       connected: false,
       sensorsActive: false,
       calibrated: false,
@@ -870,7 +872,10 @@
       }
       btnCalibrate.classList.add("calibrated");
       btnCalibrate.textContent = "3D Zeroed ✓";
-      calibStatusText.textContent = "3D Racket Calibrated • Point at Screen = Center";
+      calibStatusText.textContent =
+        state.sport === "table_tennis"
+          ? "3D Paddle Calibrated • Point at Screen = Center"
+          : "3D Racket Calibrated • Point at Screen = Center";
       if (navigator.vibrate) {
         try { navigator.vibrate([30, 40, 50]); } catch {}
       }
@@ -1352,21 +1357,37 @@
           // Update live match scoreboard on controller
           if (data.matchSnapshot) {
             const snap = data.matchSnapshot;
+            if (snap.sport) {
+              state.sport = snap.sport === "table_tennis" ? "table_tennis" : "tennis";
+            }
+            if (snap.pointsToWin) {
+              state.pointsToWin = Number(snap.pointsToWin) || 11;
+            }
             state.matchPhase = snap.phase || "RALLY";
             if (snap.score) {
-              const pts = ["00", "15", "30", "40"];
               const p1Pts = snap.score.playerPoints || 0;
               const p2Pts = snap.score.opponentPoints || 0;
-              let scoreStr = `${pts[Math.min(3, p1Pts)]} - ${pts[Math.min(3, p2Pts)]}`;
-              if (p1Pts >= 3 && p2Pts >= 3) {
-                scoreStr = p1Pts === p2Pts ? "DEUCE" : p1Pts > p2Pts ? "AD - 40" : "40 - AD";
+              let scoreStr = "";
+              if (state.sport === "table_tennis") {
+                const deuceAt = Math.max(5, state.pointsToWin - 1);
+                if (p1Pts >= deuceAt && p2Pts >= deuceAt && p1Pts === p2Pts) {
+                  scoreStr = `DEUCE (${p1Pts})`;
+                } else {
+                  scoreStr = `${String(p1Pts).padStart(2, "0")} - ${String(p2Pts).padStart(2, "0")}`;
+                }
+              } else {
+                const pts = ["00", "15", "30", "40"];
+                scoreStr = `${pts[Math.min(3, p1Pts)]} - ${pts[Math.min(3, p2Pts)]}`;
+                if (p1Pts >= 3 && p2Pts >= 3) {
+                  scoreStr = p1Pts === p2Pts ? "DEUCE" : p1Pts > p2Pts ? "AD - 40" : "40 - AD";
+                }
               }
               scoreMainEl.textContent = scoreStr;
               const myServerRole = snap.score.server === "opponent" ? "p2" : "p1";
               state.isMyServe = myServerRole === role;
-              scoreSubEl.textContent = `Games ${snap.score.playerGames || 0}-${snap.score.opponentGames || 0} • ${
-                state.isMyServe ? "YOUR SERVE" : "RECEIVING"
-              }`;
+              scoreSubEl.textContent = `${state.sport === "table_tennis" ? "🏓" : "🎾"} Games ${
+                snap.score.playerGames || 0
+              }-${snap.score.opponentGames || 0} • ${state.isMyServe ? "YOUR SERVE" : "RECEIVING"}`;
             }
           }
         }
@@ -1380,7 +1401,7 @@
     setInterval(sendTelemetry, 55);
     sendTelemetry();
 
-    // --- Live 60FPS 3D Racket Canvas Renderer ---
+    // --- Live 60FPS 3D Racket / Paddle Canvas Renderer ---
     function render3DRacketPreview() {
       const w = canvas.width;
       const h = canvas.height;
@@ -1394,9 +1415,10 @@
       metricRoll.textContent = `R: ${Math.round(roll)}°`;
       metricYaw.textContent = `Y: ${Math.round(yaw)}°`;
 
-      // Draw 3D Court Aim Horizon Grid
+      // Draw 3D Court / Table Aim Horizon Grid
       ctx.save();
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.16)";
+      ctx.strokeStyle =
+        state.sport === "table_tennis" ? "rgba(96, 165, 250, 0.22)" : "rgba(56, 189, 248, 0.16)";
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(cx, cy, 88, 0, Math.PI * 2);
@@ -1416,7 +1438,7 @@
       ctx.stroke();
       ctx.restore();
 
-      // Draw 3D Perspective Tennis Racket
+      // Draw 3D Perspective Tennis Racket or Table Tennis Paddle
       ctx.save();
       ctx.translate(cx + yaw * 0.85, cy - pitch * 0.55);
       ctx.rotate((roll * Math.PI) / 180);
@@ -1427,61 +1449,109 @@
       ctx.scale(scaleX, scaleY);
 
       const isP1 = role === "p1";
-      const rimColor = isP1 ? "#ff5238" : "#3b82f6";
 
-      // String Bed Grid
-      ctx.save();
-      ctx.beginPath();
-      ctx.ellipse(0, -24, 42, 54, 0, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.strokeStyle = "rgba(240, 249, 255, 0.34)";
-      ctx.lineWidth = 1;
-      for (let gx = -36; gx <= 36; gx += 9) {
+      if (state.sport === "table_tennis") {
+        // 🏓 3D Table Tennis Paddle (Red forehand / Black backhand rubber + flared wood handle)
+        const isBackhandFace = roll > 16;
+        const rubberFill = isBackhandFace ? "#1e293b" : isP1 ? "#dc2626" : "#2563eb";
+        const edgeColor = state.buttonB ? "#ffea28" : "#f8fafc";
+
+        // Flared Wooden Handle
+        ctx.fillStyle = "#b47b48";
+        ctx.strokeStyle = "#5c3a1e";
+        ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.moveTo(gx, -80);
-        ctx.lineTo(gx, 32);
+        ctx.moveTo(-8, 22);
+        ctx.lineTo(8, 22);
+        ctx.lineTo(12, 82);
+        ctx.lineTo(-12, 82);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Center Wood Inlay Stripe
+        ctx.fillStyle = "#784421";
+        ctx.fillRect(-2.5, 24, 5, 56);
+
+        // Round Rubber Blade
+        ctx.fillStyle = rubberFill;
+        ctx.strokeStyle = edgeColor;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.ellipse(0, -18, 46, 48, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Bottom Wood Shoulder Collar
+        ctx.fillStyle = "#d6a16c";
+        ctx.beginPath();
+        ctx.ellipse(0, 22, 18, 6.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Specular Rubber Sheen
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(-12, -30, 24, Math.PI * 1.1, Math.PI * 1.65);
+        ctx.stroke();
+      } else {
+        // 🎾 3D Lawn Tennis Racket
+        const rimColor = isP1 ? "#ff5238" : "#3b82f6";
+
+        // String Bed Grid
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(0, -24, 42, 54, 0, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.strokeStyle = "rgba(240, 249, 255, 0.34)";
+        ctx.lineWidth = 1;
+        for (let gx = -36; gx <= 36; gx += 9) {
+          ctx.beginPath();
+          ctx.moveTo(gx, -80);
+          ctx.lineTo(gx, 32);
+          ctx.stroke();
+        }
+        for (let gy = -72; gy <= 24; gy += 9) {
+          ctx.beginPath();
+          ctx.moveTo(-44, gy);
+          ctx.lineTo(44, gy);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Outer 3D Rim
+        ctx.strokeStyle = state.buttonB ? "#ffea28" : rimColor;
+        ctx.lineWidth = 6.5;
+        ctx.beginPath();
+        ctx.ellipse(0, -24, 42, 54, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Inner Rim Highlight
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, -24, 38, 50, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Throat Y-Yoke
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 4.5;
+        ctx.beginPath();
+        ctx.moveTo(-16, 24);
+        ctx.lineTo(-4, 52);
+        ctx.moveTo(16, 24);
+        ctx.lineTo(4, 52);
+        ctx.stroke();
+
+        // Grip Handle
+        ctx.fillStyle = "#f8fafc";
+        ctx.strokeStyle = "#1e293b";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(-6, 50, 12, 38, 4);
+        ctx.fill();
         ctx.stroke();
       }
-      for (let gy = -72; gy <= 24; gy += 9) {
-        ctx.beginPath();
-        ctx.moveTo(-44, gy);
-        ctx.lineTo(44, gy);
-        ctx.stroke();
-      }
-      ctx.restore();
-
-      // Outer 3D Rim
-      ctx.strokeStyle = state.buttonB ? "#ffea28" : rimColor;
-      ctx.lineWidth = 6.5;
-      ctx.beginPath();
-      ctx.ellipse(0, -24, 42, 54, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Inner Rim Highlight
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.ellipse(0, -24, 38, 50, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // Throat Y-Yoke
-      ctx.strokeStyle = "#cbd5e1";
-      ctx.lineWidth = 4.5;
-      ctx.beginPath();
-      ctx.moveTo(-16, 24);
-      ctx.lineTo(-4, 52);
-      ctx.moveTo(16, 24);
-      ctx.lineTo(4, 52);
-      ctx.stroke();
-
-      // Grip Handle
-      ctx.fillStyle = "#f8fafc";
-      ctx.strokeStyle = "#1e293b";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.roundRect(-6, 50, 12, 38, 4);
-      ctx.fill();
-      ctx.stroke();
 
       ctx.restore();
 

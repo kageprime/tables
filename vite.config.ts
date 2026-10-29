@@ -425,6 +425,8 @@ function argonTennisRelayPlugin() {
             lastFeedback: slot.lastFeedback,
             matchSnapshot: room.matchSnapshot
               ? {
+                  sport: room.matchSnapshot.sport || "tennis",
+                  pointsToWin: room.matchSnapshot.pointsToWin || 11,
                   phase: room.matchSnapshot.phase,
                   score: room.matchSnapshot.score,
                   banner: room.matchSnapshot.banner,

@@ -6,7 +6,9 @@ export class HudUI {
     this.bannerTimer = null;
     this.timingPopupTimer = null;
     this.skillHistory = [980, 1005, 1030, 1065, 1120];
+    this.selectedSport = "tennis";
     this.selectedGamesToWin = 2;
+    this.selectedPointsToWin = 11;
     this.selectedInputMode = "mouse";
     this.selectedDifficulty = "casual";
     this.currentRoomId = "default";
@@ -78,8 +80,15 @@ export class HudUI {
     const roomParam = (params.get("room") || "").trim().toUpperCase();
     const roleParam = (params.get("role") || "p1").trim().toLowerCase() === "p2" ? "p2" : "p1";
     const modeParam = (params.get("mode") || params.get("difficulty") || "").toLowerCase();
+    const sportParam = (params.get("sport") || "").toLowerCase();
 
     this.playerRole = roleParam;
+
+    if (sportParam === "table_tennis" || sportParam === "pingpong" || sportParam === "tt") {
+      this._setSportSelection("table_tennis", { notify: false });
+    } else {
+      this._setSportSelection("tennis", { notify: false });
+    }
 
     if (roomParam && roomParam !== "DEFAULT") {
       this.currentRoomId = roomParam;
@@ -102,6 +111,70 @@ export class HudUI {
     });
   }
 
+  _setSportSelection(sport, { notify = true } = {}) {
+    const isTT = sport === "table_tennis";
+    this.selectedSport = isTT ? "table_tennis" : "tennis";
+
+    document.querySelectorAll("#sport-select-group .wii-sport-card").forEach((btn) => {
+      btn.classList.toggle("selected", btn.dataset.sport === this.selectedSport);
+    });
+
+    const titleWord = document.getElementById("title-sport-word");
+    if (titleWord) {
+      titleWord.textContent = isTT ? "Table Tennis" : "Tennis";
+    }
+
+    const previewDiagram = document.getElementById("court-preview-diagram");
+    if (previewDiagram) {
+      previewDiagram.classList.toggle("table-tennis-theme", isTT);
+    }
+
+    const lengthLabel = document.getElementById("match-length-label");
+    if (lengthLabel) {
+      lengthLabel.textContent = isTT ? "Points to Win (Win by 2 • Alternate Every 2 Serves)" : "Match Length";
+    }
+
+    const opt1 = document.getElementById("length-opt-1");
+    const opt2 = document.getElementById("length-opt-2");
+    const opt3 = document.getElementById("length-opt-3");
+    if (opt1) opt1.textContent = isTT ? "6 Pts (Blitz)" : "1 Game";
+    if (opt2) opt2.textContent = isTT ? "11 Pts (Official)" : "Best of 3";
+    if (opt3) opt3.textContent = isTT ? "21 Pts (Classic)" : "Best of 5";
+
+    const startIcon = document.getElementById("start-btn-icon");
+    const startText = document.getElementById("start-btn-text");
+    if (startIcon) startIcon.textContent = isTT ? "🏓" : "🎾";
+    if (startText) startText.textContent = isTT ? "Start Table Tennis" : "Start Tennis";
+
+    const hudSportIcon = document.getElementById("hud-sport-icon");
+    const hudSportLabel = document.getElementById("hud-sport-label");
+    if (hudSportIcon) hudSportIcon.textContent = isTT ? "🏓" : "🎾";
+    if (hudSportLabel) hudSportLabel.textContent = isTT ? "Table Tennis • Menu" : "Lawn Tennis • Menu";
+
+    // Hide secondary doubles Mii icons in Table Tennis mode
+    document.querySelectorAll(".secondary-mii").forEach((el) => {
+      el.classList.toggle("hidden", isTT);
+    });
+
+    this._syncMatchLengthFromDOM(notify);
+
+    if (notify && this.callbacks.onSelectSport) {
+      this.callbacks.onSelectSport(this.selectedSport);
+    }
+  }
+
+  _syncMatchLengthFromDOM(notify = true) {
+    const selectedBtn = document.querySelector("#match-length-group .wii-green-choice.selected");
+    const totalGames = parseInt(selectedBtn?.dataset?.games || "3", 10);
+    const totalPoints = parseInt(selectedBtn?.dataset?.points || "11", 10);
+    this.selectedGamesToWin = this.selectedSport === "table_tennis" ? 1 : Math.ceil(totalGames / 2);
+    this.selectedPointsToWin = totalPoints;
+    this.configureGameBubbles(this.selectedGamesToWin);
+    if (notify && this.callbacks.onSelectMatchLength) {
+      this.callbacks.onSelectMatchLength(this.selectedGamesToWin, this.selectedPointsToWin);
+    }
+  }
+
   _setDifficultySelection(mode, { notify = true } = {}) {
     const validMode = ["casual", "pro", "couch_1v1", "1v1"].includes(mode) ? mode : "casual";
     this.selectedDifficulty = validMode;
@@ -110,17 +183,7 @@ export class HudUI {
       btn.classList.toggle("selected", btn.dataset.difficulty === validMode);
     });
 
-    const matchLengthSection = document.getElementById("match-length-section");
-    if (matchLengthSection) {
-      matchLengthSection.classList.remove("hidden");
-    }
-    const selectedGamesBtn = document.querySelector("#match-length-group .wii-green-choice.selected");
-    const totalGames = parseInt(selectedGamesBtn?.dataset?.games || "3", 10);
-    this.selectedGamesToWin = Math.ceil(totalGames / 2);
-    this.configureGameBubbles(this.selectedGamesToWin);
-    if (notify && this.callbacks.onSelectMatchLength) {
-      this.callbacks.onSelectMatchLength(this.selectedGamesToWin);
-    }
+    this._syncMatchLengthFromDOM(notify);
 
     const oppLabel = document.getElementById("setup-opponent-label");
     if (oppLabel && this.playerRole !== "p2") {
@@ -142,6 +205,13 @@ export class HudUI {
   }
 
   _bindEvents() {
+    document.querySelectorAll("#sport-select-group .wii-sport-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sport = btn.dataset.sport || "tennis";
+        this._setSportSelection(sport, { notify: true });
+      });
+    });
+
     document.querySelectorAll("#difficulty-mode-group .wii-green-choice").forEach((btn) => {
       btn.addEventListener("click", () => {
         const diff = btn.dataset.difficulty || "casual";
@@ -154,12 +224,7 @@ export class HudUI {
       btn.addEventListener("click", () => {
         matchBtns.forEach((b) => b.classList.remove("selected"));
         btn.classList.add("selected");
-        const games = parseInt(btn.dataset.games || "3", 10);
-        this.selectedGamesToWin = Math.ceil(games / 2);
-        this.configureGameBubbles(this.selectedGamesToWin);
-        if (this.callbacks.onSelectMatchLength) {
-          this.callbacks.onSelectMatchLength(this.selectedGamesToWin);
-        }
+        this._syncMatchLengthFromDOM(true);
       });
     });
 
@@ -181,11 +246,21 @@ export class HudUI {
         this.hideTitleModal();
         if (this.callbacks.onStartMatch) {
           this.callbacks.onStartMatch({
+            sport: this.selectedSport,
             gamesToWin: this.selectedGamesToWin,
+            pointsToWin: this.selectedPointsToWin,
             inputMode: this.selectedInputMode,
             difficulty: this.selectedDifficulty,
           });
         }
+      });
+    }
+
+    const hudSportsMenuBtn = document.getElementById("btn-hud-sports-menu");
+    if (hudSportsMenuBtn) {
+      hudSportsMenuBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.showTitleModal();
       });
     }
 
@@ -330,7 +405,7 @@ export class HudUI {
     if (copyP2Btn) {
       copyP2Btn.addEventListener("click", async () => {
         const base = (this.currentTunnelUrl || window.location.origin).replace(/\/+$/, "");
-        const url = `${base}/?room=${encodeURIComponent(this.currentRoomId)}&role=p2&mode=1v1`;
+        const url = `${base}/?room=${encodeURIComponent(this.currentRoomId)}&role=p2&mode=1v1&sport=${this.selectedSport}`;
         try {
           if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(url);
@@ -409,7 +484,7 @@ export class HudUI {
     if (this.elVictoryModal) this.elVictoryModal.classList.add("hidden");
   }
 
-  showVictoryModal({ playerWon, playerGames, opponentGames }) {
+  showVictoryModal({ playerWon, playerGames, opponentGames, sport = "tennis" }) {
     if (!this.elVictoryModal) return;
     const banner = document.getElementById("victory-result-banner");
     const score = document.getElementById("victory-match-score");
@@ -418,7 +493,12 @@ export class HudUI {
       banner.textContent = playerWon ? "YOU WIN!" : "TRY AGAIN!";
       banner.style.color = playerWon ? "#ffea28" : "#9ad4ff";
     }
-    if (score) score.textContent = `Final Games: ${playerGames} - ${opponentGames}`;
+    if (score) {
+      score.textContent =
+        sport === "table_tennis"
+          ? `Final Table Tennis Score: ${playerGames} - ${opponentGames}`
+          : `Final Games: ${playerGames} - ${opponentGames}`;
+    }
     const skillVal = playerWon ? 1145 : 1020;
     if (rating) rating.textContent = String(skillVal);
     this._drawSkillGraph(playerWon);
@@ -642,11 +722,11 @@ export class HudUI {
     if (this.elPhoneDot) this.elPhoneDot.classList.toggle("active", anyPhone);
     if (this.elPhoneLabel) {
       if (p1Phone && p2Phone) {
-        this.elPhoneLabel.textContent = "P1 & P2 Rackets ✓";
+        this.elPhoneLabel.textContent = "P1 & P2 Controllers ✓";
       } else if (anyPhone) {
-        this.elPhoneLabel.textContent = "3D Racket Connected ✓";
+        this.elPhoneLabel.textContent = "3D Controller Ready ✓";
       } else {
-        this.elPhoneLabel.textContent = "Phone 3D Racket";
+        this.elPhoneLabel.textContent = "Phone 3D Controller";
       }
     }
     if (this.elTitlePhoneBadge) {
@@ -676,7 +756,7 @@ export class HudUI {
         }
         const o = activeState?.orientation || { pitch: 0, roll: 0, yaw: 0 };
         const shotLock = String(activeState?.selectedShotType || "auto").toUpperCase();
-        const rushTag = activeState?.dpad?.netRush ? " • ⚡NET RUSH" : "";
+        const rushTag = activeState?.dpad?.netRush ? " • ⚡NET" : "";
         if (this.elHud3dText) {
           this.elHud3dText.textContent = `${isCalib ? "3D Calibrated" : "3D Live"} (${shotLock}${rushTag})`;
         }
@@ -706,7 +786,6 @@ export class HudUI {
       this.elCalibReadoutP2.textContent = `P: ${Math.round(o2.pitch || 0)}°  R: ${Math.round(o2.roll || 0)}°  Y: ${Math.round(o2.yaw || 0)}° • ${c2}`;
     }
 
-    // Only redraw modal canvases when companion modal is open
     if (this.elCompanionModal && !this.elCompanionModal.classList.contains("hidden")) {
       this._drawMiniRacketPreview(
         this.elCalibCanvasP1,
@@ -730,7 +809,6 @@ export class HudUI {
     const h = canvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Subtle court horizon grid
     ctx.strokeStyle = "rgba(140, 195, 255, 0.14)";
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -750,6 +828,35 @@ export class HudUI {
 
     const headScaleY = Math.max(0.32, Math.cos(pitchRad * 0.75));
     const headScaleX = Math.max(0.38, Math.cos(rollRad * 0.55));
+
+    if (this.selectedSport === "table_tennis") {
+      // Draw 3D Table Tennis Paddle
+      ctx.strokeStyle = connected ? "#d97706" : "rgba(180, 150, 110, 0.45)";
+      ctx.lineWidth = 7;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(0, 10);
+      ctx.lineTo(0, 32);
+      ctx.stroke();
+
+      ctx.save();
+      ctx.scale(headScaleX, headScaleY);
+      const isBackhandFace = Math.abs(Number(orientation.roll) || 0) > 65;
+      ctx.fillStyle = connected
+        ? isBackhandFace
+          ? "#18181b"
+          : "#e11d48"
+        : "rgba(225, 29, 72, 0.35)";
+      ctx.strokeStyle = connected ? "#fde047" : "rgba(255, 255, 255, 0.35)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, -8, 22, 23, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+      ctx.restore();
+      return;
+    }
 
     // Handle
     ctx.strokeStyle = connected ? "#e2eef8" : "rgba(180, 205, 230, 0.4)";
@@ -900,13 +1007,13 @@ export class HudUI {
       }
     } else if (isP2View) {
       ready = !!(status.p2Phone || status.p1Phone || status.p1Online);
-      if (status.p2Phone) label = `Racket Ready • ${hostName} Joined`;
-      else if (status.p1Phone || status.p1Online) label = `${hostName} Ready • Scan QR for Phone Racket`;
+      if (status.p2Phone) label = `Controller Ready • ${hostName} Joined`;
+      else if (status.p1Phone || status.p1Online) label = `${hostName} Ready • Scan QR for Phone Controller`;
       else label = `Waiting for ${hostName}…`;
     } else {
       ready = !!(status.p2Phone || status.p2Online);
       if (status.p2Phone && status.p2Online) label = `${guestName} Connected • Ready to Serve!`;
-      else if (status.p2Phone) label = `${guestName}'s 3D Racket Ready • Ready to Serve!`;
+      else if (status.p2Phone) label = `${guestName}'s 3D Controller Ready • Ready to Serve!`;
       else if (status.p2Online) label = `${guestName} Joined • Ready to Serve!`;
       else label = `Waiting for ${guestName} (Scan P2 QR or Share Link)…`;
     }

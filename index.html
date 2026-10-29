@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="description" content="Wii Sports-inspired 3D arcade tennis game with frantic racket kinematics, expressive Mii characters, webcam &amp; phone motion controls, and Lyria 3 audio." />
+  <meta name="description" content="Wii Sports-inspired 3D arcade Lawn Tennis &amp; Table Tennis game with frantic racket kinematics, expressive Mii characters, webcam &amp; phone 3D motion controls, and Lyria 3 audio." />
   <title>Remix Argon Tennis</title>
   <meta property="og:title" content="Remix Argon Tennis" />
-  <meta property="og:description" content="3D arcade tennis game with frantic racket kinematics, expressive Mii characters, webcam &amp; phone motion controls, and Lyria 3 audio." />
+  <meta property="og:description" content="3D arcade Lawn Tennis &amp; Table Tennis game with frantic racket kinematics, expressive Mii characters, webcam &amp; phone motion controls, and Lyria 3 audio." />
   <script>
     (function () {
       const params = new URLSearchParams(window.location.search);
@@ -23,7 +23,7 @@
 </head>
 <body>
   <div id="root" class="hidden" aria-hidden="true"></div>
-  <div id="canvas-container" aria-label="Argon Tennis 3D Stadium Viewport">
+  <div id="canvas-container" aria-label="Argon Sports 3D Stadium Viewport">
     <canvas id="game-canvas"></canvas>
   </div>
 
@@ -100,7 +100,9 @@
           <div id="timing-cursor" class="timing-cursor" style="left: 50%;"></div>
         </div>
         <div id="hud-3d-telemetry-row" class="hud-3d-telemetry-row hidden">
-          <span id="hud-3d-angles-text">3D: P 0° • R 0° • Y 0°</span>
+          <span id="hud-3d-calib-dot" class="btn-dot"></span>
+          <span id="hud-3d-calib-text">3D Live</span>
+          <span id="hud-3d-angles-text">P:0° R:0° Y:0°</span>
           <button type="button" id="btn-hud-recenter-3d" class="hud-recenter-mini-btn">Zero 3D</button>
         </div>
       </div>
@@ -118,7 +120,7 @@
         <div class="motion-buttons-col">
           <button id="btn-phone-racket" class="hud-mini-btn motion-btn" type="button" title="Pair Phone Controller &amp; Calibrate 3D">
             <span class="btn-dot" id="phone-status-dot"></span>
-            <span id="phone-status-label">Phone Controller (Wii U)</span>
+            <span id="phone-status-label">Phone 3D Controller</span>
           </button>
           <button id="btn-webcam-toggle" class="hud-mini-btn motion-btn" type="button">
             <span class="btn-dot" id="webcam-status-dot"></span>
@@ -127,6 +129,10 @@
 
           <div id="bottom-left-dock" class="hud-corner-dock bottom-left-dock">
             <div class="dock-pill-row">
+              <button id="btn-hud-sports-menu" class="hud-mini-btn sport-menu-hud-btn" type="button" title="Open Argon Sports Game Menu">
+                <span id="hud-sport-icon">🎾</span>
+                <span id="hud-sport-label">Sports Menu</span>
+              </button>
               <button id="btn-audio-toggle" class="hud-mini-btn" type="button" title="Toggle Lyria 3 Soundtrack &amp; SFX">
                 <span class="btn-dot music-on" id="audio-status-dot"></span>
                 <span id="audio-track-label">Lyria: Sunny Rally</span>
@@ -147,21 +153,42 @@
     </div>
   </div>
 
-  <!-- Title & Mode Setup Modal -->
+  <!-- Title & Argon Sports Game Play Menu Modal -->
   <div id="title-modal" class="wii-modal-backdrop">
     <div class="wii-title-card">
       <div class="wii-logo-header">
+        <div class="argon-club-pill">ARGON SPORTS • Wii U 3D PHONE CONTROLLER CLUB</div>
         <h1 class="argon-logo-title">
-          <span class="logo-word-argon">Argon</span><span class="logo-word-tennis">Tennis</span>
+          <span class="logo-word-argon">Argon</span><span id="title-sport-word" class="logo-word-tennis">Tennis</span>
         </h1>
       </div>
 
-      <div class="court-preview-diagram">
+      <!-- Sport Selection Bar -->
+      <div class="setup-section">
+        <div class="setup-section-label">Select Sport to Play</div>
+        <div class="sport-selector-bar" id="sport-select-group">
+          <button type="button" class="wii-sport-card selected" data-sport="tennis">
+            <span class="sport-card-icon">🎾</span>
+            <div class="sport-card-info">
+              <span class="sport-card-title">Lawn Tennis</span>
+              <span class="sport-card-desc">Stadium Court • 3D Racket • 15-30-40</span>
+            </div>
+          </button>
+          <button type="button" class="wii-sport-card" data-sport="table_tennis">
+            <span class="sport-card-icon">🏓</span>
+            <div class="sport-card-info">
+              <span class="sport-card-title">Table Tennis</span>
+              <span class="sport-card-desc">Ping Pong Arena • 3D Paddle • 11-Pt Spin</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div id="court-preview-diagram" class="court-preview-diagram">
         <div class="mini-court-turf">
           <div class="mini-court-lines">
             <div class="mini-net-line"></div>
-            <div class="mini-service-box top"></div>
-            <div class="mini-service-box bottom"></div>
+            <div class="mini-tt-center-line"></div>
           </div>
           <div class="court-slot-marker opponent-marker">
             <canvas id="setup-mii-opponent" width="192" height="192"></canvas>
@@ -175,7 +202,7 @@
       </div>
 
       <div class="setup-section">
-        <div class="setup-section-label">Select Game Mode (1v1 PvCPU or 1v1 PvP)</div>
+        <div class="setup-section-label">Select Match Mode (1v1 PvCPU or 1v1 PvP)</div>
         <div class="wii-green-btn-row mode-grid-4" id="difficulty-mode-group">
           <button type="button" class="wii-green-choice selected" data-difficulty="casual">
             <span class="choice-main">Casual AI</span>
@@ -197,11 +224,17 @@
       </div>
 
       <div class="setup-section" id="match-length-section">
-        <div class="setup-section-label">Match Length</div>
+        <div id="match-length-label" class="setup-section-label">Match Length</div>
         <div class="wii-green-btn-row" id="match-length-group">
-          <button type="button" class="wii-green-choice" data-games="1"><span class="choice-main">1 Game</span></button>
-          <button type="button" class="wii-green-choice selected" data-games="3"><span class="choice-main">Best of 3</span></button>
-          <button type="button" class="wii-green-choice" data-games="5"><span class="choice-main">Best of 5</span></button>
+          <button type="button" class="wii-green-choice" data-games="1" data-points="6">
+            <span class="choice-main" id="length-opt-1">1 Game</span>
+          </button>
+          <button type="button" class="wii-green-choice selected" data-games="3" data-points="11">
+            <span class="choice-main" id="length-opt-2">Best of 3</span>
+          </button>
+          <button type="button" class="wii-green-choice" data-games="5" data-points="21">
+            <span class="choice-main" id="length-opt-3">Best of 5</span>
+          </button>
         </div>
       </div>
 
@@ -211,8 +244,8 @@
           <span id="title-phone-badge" class="title-phone-status-tag">Scan QR</span>
         </button>
         <button id="btn-start-match" type="button" class="wii-ok-btn">
-          <span class="hand-cursor-icon">🎾</span>
-          <span>Start Match</span>
+          <span id="start-btn-icon" class="hand-cursor-icon">🎾</span>
+          <span id="start-btn-text">Start Tennis</span>
         </button>
       </div>
     </div>
@@ -224,11 +257,12 @@
       <div class="mp-dialog-header">
         <div>
           <h2 class="dialog-title">Wii U Phone Controller &amp; 3D Calibration</h2>
-          <p class="dialog-desc">Scan with your phone camera to use your phone as a 60Hz 3D motion racket</p>
+          <p class="dialog-desc">Scan with your phone camera to use your phone as a 60Hz 3D motion racket or ping-pong paddle</p>
         </div>
         <div class="mp-header-right">
+          <span id="mp-active-status" class="mp-conn-tag">Scan QR</span>
           <span id="companion-room-badge" class="mp-conn-tag">ROOM #DEFAULT</span>
-          <button type="button" id="btn-create-1v1-room" class="mp-Action-mini-btn">+ New 1v1 Room</button>
+          <button type="button" id="btn-create-1v1-room" class="mp-Action-mini-btn">+ New Room Code</button>
         </div>
       </div>
 
@@ -236,7 +270,7 @@
         <!-- Player 1 Controller Card -->
         <div id="mp-card-p1" class="mp-controller-slot-card p1-slot">
           <div class="slot-card-header">
-            <span class="slot-role-title p1-color">Player 1 Racket (Near Court)</span>
+            <span class="slot-role-title p1-color">Player 1 Controller (Near Side)</span>
             <span id="mp-p1-status" class="mp-conn-tag">Scan QR</span>
           </div>
           <div class="slot-qr-and-preview">
@@ -248,8 +282,8 @@
               <canvas id="calib-canvas-p1" width="160" height="128" class="calib-mini-canvas"></canvas>
               <div id="calib-readout-p1" class="calib-angle-readout">P: 0° • R: 0° • Y: 0°</div>
               <div class="calib-btn-row">
-                <button type="button" id="btn-recenter-p1" class="calib-mini-btn">Zero 3D</button>
-                <button type="button" id="btn-test-haptic-p1" class="calib-mini-btn">Vibrate</button>
+                <button type="button" id="btn-recenter-p1" class="calib-mini-btn">🎯 Recenter 3D</button>
+                <button type="button" id="btn-test-haptic-p1" class="calib-mini-btn">📳 Test Haptic</button>
               </div>
             </div>
           </div>
@@ -258,7 +292,7 @@
         <!-- Player 2 Controller Card -->
         <div id="mp-card-p2" class="mp-controller-slot-card p2-slot">
           <div class="slot-card-header">
-            <span class="slot-role-title p2-color">Player 2 Racket (Far Court / 1v1)</span>
+            <span class="slot-role-title p2-color">Player 2 Controller (Far Side / 1v1)</span>
             <span id="mp-p2-status" class="mp-conn-tag">Scan QR</span>
           </div>
           <div class="slot-qr-and-preview">
@@ -270,8 +304,8 @@
               <canvas id="calib-canvas-p2" width="160" height="128" class="calib-mini-canvas"></canvas>
               <div id="calib-readout-p2" class="calib-angle-readout">P: 0° • R: 0° • Y: 0°</div>
               <div class="calib-btn-row">
-                <button type="button" id="btn-recenter-p2" class="calib-mini-btn">Zero 3D</button>
-                <button type="button" id="btn-test-haptic-p2" class="calib-mini-btn">Vibrate</button>
+                <button type="button" id="btn-recenter-p2" class="calib-mini-btn">🎯 Recenter 3D</button>
+                <button type="button" id="btn-test-haptic-p2" class="calib-mini-btn">📳 Test Haptic</button>
               </div>
             </div>
           </div>
@@ -282,13 +316,13 @@
       <div class="mp-remote-share-bar">
         <div class="share-bar-left">
           <span class="share-label">Remote 1v1 P2 Screen Link:</span>
-          <a id="court-link-p2" href="/?room=default&amp;role=p2" target="_blank" rel="noopener" class="mp-subtle-link">Open P2 Stadium View ↗</a>
+          <a id="court-link-p2" href="/?room=default&amp;role=p2" target="_blank" rel="noopener" class="mp-subtle-link">Open P2 View ↗</a>
         </div>
-        <button type="button" id="btn-copy-p2-url" class="calib-mini-btn">Copy P2 Match Link</button>
+        <button type="button" id="btn-copy-p2-url" class="calib-mini-btn">📋 Copy P2 Online Court Link</button>
       </div>
 
       <div class="dialog-actions">
-        <button id="btn-close-companion" type="button" class="wii-pill-btn">Back to Court</button>
+        <button id="btn-close-companion" type="button" class="wii-pill-btn">Back to Game</button>
       </div>
     </div>
   </div>
@@ -296,7 +330,7 @@
   <!-- Victory Skill Rating Modal -->
   <div id="victory-modal" class="wii-modal-backdrop hidden">
     <div class="wii-skill-card">
-      <div class="skill-card-header">Club Skill Rating</div>
+      <div class="skill-card-header">Argon Sports Skill Rating</div>
       <div class="skill-card-body">
         <div class="skill-chart-frame">
           <canvas id="skill-graph-canvas" width="280" height="200"></canvas>
@@ -310,12 +344,12 @@
               <div class="skill-player-name">Ammaar (+120)</div>
             </div>
           </div>
-          <div id="victory-match-score" class="victory-match-score">Final Games: 2 - 0</div>
+          <div id="victory-match-score" class="victory-match-score">Final Score: 2 - 0</div>
         </div>
       </div>
       <div class="skill-card-footer">
-        <button id="btn-play-again" type="button" class="wii-footer-btn primary">Play again</button>
-        <button id="btn-return-title" type="button" class="wii-footer-btn secondary">Menu</button>
+        <button id="btn-play-again" type="button" class="wii-footer-btn primary">Play Again</button>
+        <button id="btn-return-title" type="button" class="wii-footer-btn secondary">Sports Menu</button>
       </div>
     </div>
   </div>
